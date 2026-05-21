@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+.ipynb_checkpoints/
+.python-version
+
+# Data — never push
+*.parquet
+*.csv
+*.duckdb
+*.feather
+*.ipc
+*.arrow
+*.jsonl
+*.xlsx
+*.xls
+
+# Data folders
+downloads/
+outputs/
+data/
+Data/
