@@ -26,6 +26,18 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 |---|---|
 | `scripts/data_01a_download_flows.py` | Fetch one day's data via the WebSquare XHR, parse to a tidy Polars frame, save bronze parquet + raw XML + HTML-XLS replica. |
 | `scripts/data_01b_verify_against_references.py` | Diff the downloader output for 2026-05-20 and 2022-04-01 against the two reference `.xls` files shared by Romain. |
+| `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write a clean CSV matching the on-site Excel layout. `--english` flag translates labels. |
+| `scripts/data_01d_morning_send.py` | Daily morning job: widen calendar-day window (10→15→21→30) until 5 unique Korean trading days are returned, validate (10 rows = 5 days × 2 instruments), write English CSV, emit JSON summary on stdout. Exits non-zero on validation failure so callers know not to send the email. |
+
+## Scheduled daily email (Zo agent)
+
+A Zo agent runs Mon–Fri 09:00 SGT and emails the English CSV to `angelahsieh@gic.com.sg` (CC: Romain) using the connected Outlook account `rorozozo-ai@outlook.com`. The agent:
+
+1. Runs `data_01d_morning_send.py`.
+2. Skips the send and pings Telegram if validation fails (no full 5-day window).
+3. Otherwise calls `use_app_microsoft_outlook` (`microsoft_outlook-send-email`) with the CSV attached.
+
+Both the recurring agent and one-time test agent were created via `create_agent`. To edit, list, or delete them, use `list_agents` / `edit_agent` / `delete_agent` from the Zo chat agent (not the Claude Code CLI — integration dispatchers like `use_app_microsoft_outlook` only exist in the chat runtime).
 
 ## Storage layout
 
