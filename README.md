@@ -26,17 +26,17 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 |---|---|
 | `scripts/data_01a_download_flows.py` | Fetch one day's data via the WebSquare XHR, parse to a tidy Polars frame, save bronze parquet + raw XML + HTML-XLS replica. |
 | `scripts/data_01b_verify_against_references.py` | Diff the downloader output for 2026-05-20 and 2022-04-01 against the two reference `.xls` files shared by Romain. |
-| `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write a clean CSV matching the on-site Excel layout plus a trailing net-balance column. `--english` flag translates labels. |
-| `scripts/data_01d_morning_send.py` | Daily morning job: fetch, validate, **persist to bronze**, and email English CSV with a net-balance column to Angela. |
+| `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write an Excel workbook matching the on-site layout plus a trailing net-balance column. `--english` flag translates labels. |
+| `scripts/data_01d_morning_send.py` | Daily morning job: fetch, validate, **persist to bronze**, and email an English Excel workbook with a net-balance column to Angela. |
 | `scripts/data_02a_build_manifest.py` | Build a manifest of bronze parquets and sync to DuckDB (`Data/seibro/seibro.duckdb`). |
 
 ## Scheduled daily email (Zo agent)
 
-A Zo agent runs Mon–Fri 09:00 SGT and emails the English CSV to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
+A Zo agent runs Mon–Fri 09:00 SGT and emails the English Excel workbook to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
 
 1. Runs `data_01d_morning_send.py`.
 2. Skips the send and pings Telegram if validation fails (no full 5-day window).
-3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the CSV attached as a base64 data URI (Pipedream's Gmail action runs in their sandbox and cannot read local paths on Zo, hence the inline encoding).
+3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the workbook attached via a temporary download URL (Pipedream's Gmail action runs in their sandbox and cannot read local paths on Zo, hence the temporary public link).
 
 Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
 

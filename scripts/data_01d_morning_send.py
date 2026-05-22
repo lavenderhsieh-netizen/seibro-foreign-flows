@@ -2,8 +2,8 @@
 data_01d_morning_send.py
 
 Daily morning script: fetch the most recent 5 Korean trading days from
-SEIBro, validate, and write an English CSV ready to be attached to an
-email by the calling Zo agent.
+SEIBro, validate, and write an English Excel workbook ready to be attached
+to an email by the calling Zo agent.
 
 Strategy:
 - Pull a 10-calendar-day window ending today.
@@ -18,10 +18,12 @@ Strategy:
 
 Outputs:
     CSV at /home/workspace/Documents/seibro_morning_last5bd_<end>.csv
+    XLSX at /home/workspace/Documents/seibro_morning_last5bd_<end>.xlsx
     JSON summary on stdout
 
-The CSV includes an extra final column:
-    Net balance = total buy - total sell
+Workbook structure:
+    Tab 1 = detailed English data with trailing Net balance column
+    Tab 2 = Date / Equity Net Balance / Debt Net Balance summary
 """
 
 # %% imports
@@ -38,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data_01a_download_flows import download_day
 from data_01c_range_to_csv import (  # noqa: E402
     DISPLAY_MARKETS,
+    build_workbook,
     fetch_range_xml,
     parse_range_rows,
     to_csv_lines,
@@ -193,14 +196,19 @@ if __name__ == "__main__":
     last_dash = f"{dates[-1][:4]}-{dates[-1][4:6]}-{dates[-1][6:8]}"
 
     csv_path = OUT_DIR / f"seibro_morning_last5bd_{last_dash}.csv"
+    xlsx_path = OUT_DIR / f"seibro_morning_last5bd_{last_dash}.xlsx"
     lines = to_csv_lines(rows, english=True)
     csv_path.write_text("\n".join(lines) + "\n", encoding="utf-8-sig")
     print(f"[morning-send] wrote {csv_path}  ({csv_path.stat().st_size} B)",
+          file=sys.stderr)
+    build_workbook(rows, xlsx_path, english=True)
+    print(f"[morning-send] wrote {xlsx_path}  ({xlsx_path.stat().st_size} B)",
           file=sys.stderr)
 
     summary = {
         "ok": True,
         "csv_path": str(csv_path),
+        "xlsx_path": str(xlsx_path),
         "trading_days": [f"{d[:4]}-{d[4:6]}-{d[6:8]}" for d in dates],
         "first_date": first_dash,
         "last_date": last_dash,

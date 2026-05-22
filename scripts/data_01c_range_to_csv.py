@@ -1,12 +1,12 @@
 """
 data_01c_range_to_csv.py
 
-One-shot: fetch a date range from SEIBro and write a clean CSV matching the
-on-site Excel layout (same column order, no value transforms). Korean labels
-by default; pass --english to get a translated version with identical layout.
+One-shot: fetch a date range from SEIBro and write a clean Excel workbook
+matching the on-site layout. Korean labels by default; pass --english to
+get a translated version with identical layout.
 
 Usage:
-    uv run python scripts/data_01c_range_to_csv.py START END OUT_CSV [--english]
+    uv run python scripts/data_01c_range_to_csv.py START END OUT_XLSX [--english]
     # dates as YYYY-MM-DD; range is inclusive on both ends
 """
 
@@ -18,6 +18,9 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import httpx
+import polars as pl
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
 # %% constants
 SEIBRO_URL = "https://seibro.or.kr/websquare/engine/proworks/callServletService.jsp"
@@ -47,6 +50,9 @@ EN_INSTRUMENT = {"주식": "Equity", "채권": "Bond"}
 EN_SIDE = {"매도": "Sell", "매수": "Buy"}
 EN_REFDATE = "Reference date"
 EN_CATEGORY = "Category"
+EN_SUMMARY_DATE = "Date"
+EN_SUMMARY_EQUITY = "Equity Net Balance"
+EN_SUMMARY_DEBT = "Debt Net Balance"
 
 
 # %% fetch
@@ -149,15 +155,100 @@ def _fmt_net_balance(total_sell: str, total_buy: str) -> str:
     return s
 
 
+def build_summary_frame(rows: list[dict]) -> pl.DataFrame:
+    """Return one row per date with equity and bond net balances."""
+    df = pl.DataFrame(rows)
+    summary = (
+        df.with_columns(
+            (pl.col("AA_SUM_2").cast(pl.Float64, strict=False).fill_null(0.0)
+             - pl.col("AA_SUM_1").cast(pl.Float64, strict=False).fill_null(0.0)
+            ).alias("net_balance"),
+            pl.when(pl.col("SECN_TPCD_NM") == "주식")
+              .then(pl.lit("Equity"))
+              .when(pl.col("SECN_TPCD_NM") == "채권")
+              .then(pl.lit("Debt"))
+              .otherwise(pl.col("SECN_TPCD_NM"))
+              .alias("instrument_en"),
+        )
+        .select("SETL_DT", "instrument_en", "net_balance")
+        .pivot(index="SETL_DT", on="instrument_en", values="net_balance")
+        .sort("SETL_DT")
+        .rename({"SETL_DT": EN_SUMMARY_DATE, "Equity": EN_SUMMARY_EQUITY, "Debt": EN_SUMMARY_DEBT})
+    )
+    return summary
+
+
+def _style_header(ws, row: int) -> None:
+    fill = PatternFill("solid", fgColor="1F4E78")
+    font = Font(color="FFFFFF", bold=True)
+    for cell in ws[row]:
+        if cell.value is not None:
+            cell.fill = fill
+            cell.font = font
+            cell.alignment = Alignment(horizontal="center")
+
+
+def _autosize(ws) -> None:
+    for col in ws.columns:
+        cells = list(col)
+        if not cells:
+            continue
+        letter = cells[0].column_letter
+        width = max(len(str(c.value)) if c.value is not None else 0 for c in cells) + 2
+        ws.column_dimensions[letter].width = min(max(width, 10), 24)
+
+
+def build_workbook(rows: list[dict], out_xlsx: Path, english: bool = True) -> Path:
+    """Write a two-tab Excel workbook for the email attachment."""
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Data"
+    ws2 = wb.create_sheet("Summary")
+
+    detailed_lines = to_csv_lines(rows, english=english)
+    for line in detailed_lines:
+        ws1.append(line.split(","))
+    _style_header(ws1, 1)
+    _style_header(ws1, 2)
+    ws1.freeze_panes = "A3"
+    ws1.auto_filter.ref = ws1.dimensions
+    _autosize(ws1)
+
+    summary_df = build_summary_frame(rows)
+    ws2.append([EN_SUMMARY_DATE, EN_SUMMARY_EQUITY, EN_SUMMARY_DEBT])
+    for row in summary_df.iter_rows(named=True):
+        raw_date = str(row.get(EN_SUMMARY_DATE, ""))
+        if len(raw_date) == 8 and raw_date.isdigit():
+            date_value = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
+        else:
+            date_value = raw_date
+        ws2.append([
+            date_value,
+            row.get(EN_SUMMARY_EQUITY),
+            row.get(EN_SUMMARY_DEBT),
+        ])
+    _style_header(ws2, 1)
+    ws2.freeze_panes = "A2"
+    for row in ws2.iter_rows(min_row=2, min_col=2, max_col=3):
+        for cell in row:
+            if isinstance(cell.value, (int, float)):
+                cell.number_format = "0.00"
+    _autosize(ws2)
+
+    out_xlsx.parent.mkdir(parents=True, exist_ok=True)
+    wb.save(out_xlsx)
+    return out_xlsx
+
+
 # %% main
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if a != "--english"]
     english = "--english" in sys.argv
     if len(args) != 3:
-        print("usage: data_01c_range_to_csv.py START END OUT_CSV [--english]",
+        print("usage: data_01c_range_to_csv.py START END OUT_XLSX [--english]",
               file=sys.stderr)
         sys.exit(2)
-    start, end, out_csv = args[0], args[1], Path(args[2])
+    start, end, out_xlsx = args[0], args[1], Path(args[2])
     start_ymd = start.replace("-", "")
     end_ymd = end.replace("-", "")
     print(f"[seibro] range {start} -> {end}  (english={english}) ...")
@@ -166,10 +257,5 @@ if __name__ == "__main__":
     print(f"  parsed {len(rows)} rows ({len(rows) // 2} trading days)")
     if not rows:
         print("WARNING: no rows in response", file=sys.stderr)
-    lines = to_csv_lines(rows, english=english)
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    # UTF-8 BOM so Excel opens Korean/English headers cleanly either way.
-    out_csv.write_text("\n".join(lines) + "\n", encoding="utf-8-sig")
-    print(f"  wrote {out_csv}  ({out_csv.stat().st_size} bytes)")
-    print()
-    print("\n".join(lines))
+    out_xlsx = build_workbook(rows, out_xlsx, english=english)
+    print(f"  wrote {out_xlsx}  ({out_xlsx.stat().st_size} bytes)")
