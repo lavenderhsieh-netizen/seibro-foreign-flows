@@ -31,13 +31,15 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 
 ## Scheduled daily email (Zo agent)
 
-A Zo agent runs Mon–Fri 09:00 SGT and emails the English CSV to `angelahsieh@gic.com.sg` (CC: Romain) using the connected Outlook account `rorozozo-ai@outlook.com`. The agent:
+A Zo agent runs Mon–Fri 09:00 SGT and emails the English CSV to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
 
 1. Runs `data_01d_morning_send.py`.
 2. Skips the send and pings Telegram if validation fails (no full 5-day window).
-3. Otherwise calls `use_app_microsoft_outlook` (`microsoft_outlook-send-email`) with the CSV attached.
+3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the CSV attached as a base64 data URI (Pipedream's Gmail action runs in their sandbox and cannot read local paths on Zo, hence the inline encoding).
 
-Both the recurring agent and one-time test agent were created via `create_agent`. To edit, list, or delete them, use `list_agents` / `edit_agent` / `delete_agent` from the Zo chat agent (not the Claude Code CLI — integration dispatchers like `use_app_microsoft_outlook` only exist in the chat runtime).
+Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
+
+**Historical note** — the original agent used Microsoft Outlook (`rorozozo-ai@outlook.com`), but the Outlook integration was connected read-only, so every send was rejected at Pipedream's auth layer. Switched to Gmail on 2026-05-22.
 
 ## Storage layout
 
