@@ -91,11 +91,14 @@ def parse_range_rows(xml_text: str) -> list[dict]:
 def to_csv_lines(rows: list[dict], english: bool = False) -> list[str]:
     """
     Two-row header (markets, then sell/buy), then per-day rows.
-    Layout mirrors the on-site Excel export exactly; only the labels change
-    when english=True.
+    Layout mirrors the on-site Excel export, with one added trailing
+    net-balance column:
+      net balance = total buy - total sell
+    Only the labels change when english=True.
     """
     refdate_h = EN_REFDATE if english else "조회기준일"
     category_h = EN_CATEGORY if english else "구분"
+    net_balance_h = "Net balance" if english else "순매수"
     market_label = (lambda m: EN_MARKETS[m]) if english else (lambda m: m)
     sell_label = EN_SIDE["매도"] if english else "매도"
     buy_label = EN_SIDE["매수"] if english else "매수"
@@ -104,9 +107,11 @@ def to_csv_lines(rows: list[dict], english: bool = False) -> list[str]:
     h1 = [refdate_h, category_h]
     for m in DISPLAY_MARKETS:
         h1 += [market_label(m), ""]
+    h1.append(net_balance_h)
     h2 = ["", ""]
     for _ in DISPLAY_MARKETS:
         h2 += [sell_label, buy_label]
+    h2.append("")
     lines = [",".join(h1), ",".join(h2)]
 
     for kv in rows:
@@ -117,8 +122,31 @@ def to_csv_lines(rows: list[dict], english: bool = False) -> list[str]:
             code = API_BY_MARKET[m]
             for sfx in ("_1", "_2"):
                 cells.append(kv.get(f"{code}{sfx}", ""))
+        total_sell = kv.get("AA_SUM_1", "")
+        total_buy = kv.get("AA_SUM_2", "")
+        cells.append(_fmt_net_balance(total_sell, total_buy))
         lines.append(",".join(cells))
     return lines
+
+
+def _fmt_net_balance(total_sell: str, total_buy: str) -> str:
+    """Compute and format total buy minus total sell as a compact string."""
+    try:
+        sell = float(total_sell or 0)
+        buy = float(total_buy or 0)
+    except ValueError:
+        return ""
+    v = buy - sell
+    if v == 0:
+        return "0"
+    if v == int(v):
+        return str(int(v))
+    s = f"{v:.10f}".rstrip("0").rstrip(".")
+    if s.startswith("0.") and v < 1:
+        s = s[1:]
+    if s.startswith("-0.") and v > -1:
+        s = "-" + s[2:]
+    return s
 
 
 # %% main

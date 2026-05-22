@@ -26,8 +26,8 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 |---|---|
 | `scripts/data_01a_download_flows.py` | Fetch one day's data via the WebSquare XHR, parse to a tidy Polars frame, save bronze parquet + raw XML + HTML-XLS replica. |
 | `scripts/data_01b_verify_against_references.py` | Diff the downloader output for 2026-05-20 and 2022-04-01 against the two reference `.xls` files shared by Romain. |
-| `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write a clean CSV matching the on-site Excel layout. `--english` flag translates labels. |
-| `scripts/data_01d_morning_send.py` | Daily morning job: fetch, validate, **persist to bronze**, and email English CSV to Angela. |
+| `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write a clean CSV matching the on-site Excel layout plus a trailing net-balance column. `--english` flag translates labels. |
+| `scripts/data_01d_morning_send.py` | Daily morning job: fetch, validate, **persist to bronze**, and email English CSV with a net-balance column to Angela. |
 | `scripts/data_02a_build_manifest.py` | Build a manifest of bronze parquets and sync to DuckDB (`Data/seibro/seibro.duckdb`). |
 
 ## Scheduled daily email (Zo agent)

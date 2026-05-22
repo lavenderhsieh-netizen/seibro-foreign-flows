@@ -19,6 +19,9 @@ Strategy:
 Outputs:
     CSV at /home/workspace/Documents/seibro_morning_last5bd_<end>.csv
     JSON summary on stdout
+
+The CSV includes an extra final column:
+    Net balance = total buy - total sell
 """
 
 # %% imports
