@@ -32,6 +32,7 @@ from pathlib import Path
 
 # Make sibling module importable when run as a script
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from data_01a_download_flows import download_day
 from data_01c_range_to_csv import (  # noqa: E402
     DISPLAY_MARKETS,
     fetch_range_xml,
@@ -106,6 +107,29 @@ def fetch_last_n_business_days(n: int = TARGET_DAYS,
     return sliced
 
 
+def persist_to_bronze(rows: list[dict]) -> None:
+    """
+    Ensure each trading day in the rows is saved to the bronze layer
+    using the canonical download_day flow if it doesn't already exist.
+    """
+    dates = sorted({r["SETL_DT"] for r in rows})
+    for d in dates:
+        # Check if any parquet for this date exists in bronze
+        # Note: we use a simple glob to avoid re-downloading if already present
+        obs_dash = f"{d[:4]}-{d[4:6]}-{d[6:8]}"
+        pattern = f"data_01a__flows__{obs_dash}__*.parquet"
+        pq_dir = Path("/home/workspace/Data/seibro/bronze/flows")
+        if pq_dir.exists() and list(pq_dir.glob(pattern)):
+            print(f"  [bronze] {obs_dash} already exists, skipping download", file=sys.stderr)
+            continue
+
+        print(f"  [bronze] {obs_dash} missing, persisting now...", file=sys.stderr)
+        try:
+            download_day(obs_dash)
+        except Exception as e:
+            print(f"  [error] failed to persist {obs_dash}: {e}", file=sys.stderr)
+
+
 def validate(rows: list[dict], n: int = TARGET_DAYS) -> None:
     """Hard checks. Raises ValueError on any violation."""
     if not rows:
@@ -157,6 +181,9 @@ if __name__ == "__main__":
     rows = fetch_last_n_business_days(TARGET_DAYS, end=end)
     validate(rows, TARGET_DAYS)
     print(f"[morning-send] validation OK: {len(rows)} rows", file=sys.stderr)
+
+    # NEW: Persist to bronze medallion layer
+    persist_to_bronze(rows)
 
     dates = sorted({r["SETL_DT"] for r in rows})
     first_dash = f"{dates[0][:4]}-{dates[0][4:6]}-{dates[0][6:8]}"

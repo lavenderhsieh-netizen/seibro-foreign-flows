@@ -27,7 +27,8 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 | `scripts/data_01a_download_flows.py` | Fetch one day's data via the WebSquare XHR, parse to a tidy Polars frame, save bronze parquet + raw XML + HTML-XLS replica. |
 | `scripts/data_01b_verify_against_references.py` | Diff the downloader output for 2026-05-20 and 2022-04-01 against the two reference `.xls` files shared by Romain. |
 | `scripts/data_01c_range_to_csv.py` | One-shot: fetch a date range, write a clean CSV matching the on-site Excel layout. `--english` flag translates labels. |
-| `scripts/data_01d_morning_send.py` | Daily morning job: widen calendar-day window (10→15→21→30) until 5 unique Korean trading days are returned, validate (10 rows = 5 days × 2 instruments), write English CSV, emit JSON summary on stdout. Exits non-zero on validation failure so callers know not to send the email. |
+| `scripts/data_01d_morning_send.py` | Daily morning job: fetch, validate, **persist to bronze**, and email English CSV to Angela. |
+| `scripts/data_02a_build_manifest.py` | Build a manifest of bronze parquets and sync to DuckDB (`Data/seibro/seibro.duckdb`). |
 
 ## Scheduled daily email (Zo agent)
 
@@ -45,6 +46,8 @@ Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_age
 
 ```
 /home/workspace/Data/seibro/
+├── manifest.parquet  (Latest versions per date)
+├── seibro.duckdb     (Table: flows)
 ├── bronze/
 │   ├── raw_xml/data_01a__flows__YYYY-MM-DD__<ts>__<git>.xml
 │   ├── flows/   data_01a__flows__YYYY-MM-DD__<ts>__<git>.parquet
