@@ -35,7 +35,7 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 A Zo agent runs Mon–Fri 09:00 SGT and emails the English Excel workbook to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
 
 1. Runs `data_01d_morning_send.py`.
-2. Skips the send and pings Telegram if validation fails (no full 5-day window).
+2. Skips the send and pings Discord if validation fails (no full 5-day window). Telegram is reserved for two-way conversation.
 3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the workbook attached via a temporary download URL (Pipedream's Gmail action runs in their sandbox and cannot read local paths on Zo, hence the temporary public link).
 
 Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
