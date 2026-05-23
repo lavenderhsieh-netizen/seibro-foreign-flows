@@ -40,7 +40,7 @@ A Zo agent runs Mon–Fri 09:00 SGT and emails the English Excel workbook to `an
 
 Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
 
-**Historical note** — the original agent used Microsoft Outlook (`rorozozo-ai@outlook.com`), but the Outlook integration was connected read-only, so every send was rejected at Pipedream's auth layer. Switched to Gmail on 2026-05-22.
+**Historical note** — the original agent used Microsoft Outlook (`quantgolem@outlook.com`), but the Outlook integration was connected read-only, so every send was rejected at Pipedream's auth layer. Switched to Gmail on 2026-05-22.
 
 ## Storage layout
 
