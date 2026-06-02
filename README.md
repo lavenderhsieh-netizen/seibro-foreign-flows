@@ -35,7 +35,7 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 A Zo agent runs Mon–Fri 09:00 SGT and emails the English Excel workbook to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
 
 1. Runs `.venv/bin/python scripts/data_01d_morning_send.py` from the project root. Do **not** use plain `python`: the system interpreter may not have workbook dependencies such as `openpyxl`.
-2. Skips the send and pings Telegram if validation fails (no full 5-day window) or Gmail returns an error.
+2. Skips the Angela send and emails Romain directly if validation fails (no full 5-day window) or Gmail returns an error.
 3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the workbook attached from a temporary public download URL. Pipedream's Gmail action runs in its own sandbox and cannot read local Zo paths such as `/home/workspace/...`, so the file must be reachable over HTTP when Gmail fetches it.
 
 Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
@@ -43,6 +43,8 @@ Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_age
 **Historical note** — the original agent used Microsoft Outlook (`quantgolem@outlook.com`), but the Outlook integration was connected read-only, so every send was rejected at Pipedream's auth layer. Switched to Gmail on 2026-05-22.
 
 **2026-05-25 fix** — the scheduled job failed before fetch because plain `python` could not import `openpyxl`. The agent now runs the project venv explicitly. Manual resend on 2026-05-25 succeeded with Gmail message id `19e5dff559a21d8a` after publishing the workbook to a temporary `zopub` URL for Gmail to fetch.
+
+**2026-06-02 fix** — the dashboard previously showed the SEIBRO job as working from static config even when no workbook/email had been generated since 2026-05-28. The ops dashboard now checks expected weekday workbook freshness, and the SEIBRO agent uses no routine delivery channel; failures should email Romain directly until Discord is reconnected.
 
 ## Storage layout
 
