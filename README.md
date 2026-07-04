@@ -32,13 +32,15 @@ Suffix `_1` = sell (매도), `_2` = buy (매수). Reference unit on the page: **
 
 ## Scheduled daily email (Zo agent)
 
-A Zo agent runs Mon–Fri 09:00 SGT and emails the English Excel workbook to `angelahsieh@gic.com.sg` using the connected Gmail account `quantgolem@gmail.com`. The agent:
+A Zo agent runs Mon–Fri 09:00 SGT on HanHan's Zo and emails the English Excel workbook to `angelahsieh@gic.com.sg` using the connected Gmail account `zoxiaohan23@gmail.com`. The agent:
 
 1. Runs `.venv/bin/python scripts/data_01d_morning_send.py` from the project root. Do **not** use plain `python`: the system interpreter may not have workbook dependencies such as `openpyxl`.
-2. Skips the Angela send and emails Romain directly if validation fails (no full 5-day window) or Gmail returns an error.
-3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the workbook attached from a temporary public download URL. Pipedream's Gmail action runs in its own sandbox and cannot read local Zo paths such as `/home/workspace/...`, so the file must be reachable over HTTP when Gmail fetches it.
+2. Skips the Angela send and emails HanHan (`lavenderhsieh@gmail.com`) if validation fails (no full 5-day window) or Gmail returns an error after one retry.
+3. Otherwise calls `use_app_gmail` (`gmail-send-email`) with the workbook attached from a temporary public download URL (`zopub sync seibro-outbox ...`, removed after a confirmed send). Pipedream's Gmail action runs in its own sandbox and cannot read local Zo paths such as `/home/workspace/...`, so the file must be reachable over HTTP when Gmail fetches it.
 
-Agent id: `5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`. Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
+Agent id: `0a1bbf93-e0d7-4a57-b76b-77db1d2afc25` (on HanHan's Zo). Edit/list/delete via `list_agents` / `edit_agent` / `delete_agent`.
+
+**2026-07-04 takeover** — HanHan took over the daily send from Romain. Repo forked to `lavenderhsieh-netizen/seibro-foreign-flows` (upstream: `quantgolem/seibro-foreign-flows`). Sender changed from `quantgolem@gmail.com` to `zoxiaohan23@gmail.com`; failure alerts now go to HanHan instead of Romain. Romain's original agent (`5a0cbef5-fb2f-49e8-93f7-f5d6d5104b87`) lives on his Zo and should be disabled by him to avoid double sends.
 
 **Historical note** — the original agent used Microsoft Outlook (`quantgolem@outlook.com`), but the Outlook integration was connected read-only, so every send was rejected at Pipedream's auth layer. Switched to Gmail on 2026-05-22.
 
